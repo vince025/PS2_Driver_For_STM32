@@ -258,6 +258,11 @@ void PS2_demo(void)
             PS2_RX = rx_data[PSS_RX] - 128; //读取右边遥感X轴方向的模拟量
             PS2_RY = 127 - rx_data[PSS_RY]; //读取右边遥感Y轴方向的模拟量
         }
+        else
+        {
+            PS2_SetInit();
+            return;
+        }
 
         DEBUG_PRINTF("    LX = %04d, LY = %04d, RX = %04d, RY = %04d -- ", PS2_LX, PS2_LY, PS2_RX, PS2_RY);
         for(int i = 0; i < 16; i++)
