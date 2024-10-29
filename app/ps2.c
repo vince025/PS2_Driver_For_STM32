@@ -71,7 +71,7 @@ void PS2_Init(void)
 void PS2_trans_data(uint8_t *tx_data, uint8_t *rx_data, uint16_t len)
 {
     CS_L;
-    DELAY_US(10);
+    DELAY_US(20);
     for(int i = 0; i < len; i++)
     {
         rx_data[i] = 0;
@@ -97,7 +97,7 @@ void PS2_trans_data(uint8_t *tx_data, uint8_t *rx_data, uint16_t len)
         }
     }
     CS_H;
-    DELAY_US(10);
+    DELAY_US(20);
 }
 
 /******************************************************
