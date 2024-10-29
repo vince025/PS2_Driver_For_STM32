@@ -7,7 +7,6 @@
  **********************************************************************/
 
 #include "main.h"
-#include "spi.h"
 #include "ps2.h"
 #include "debug.h"
 
@@ -32,20 +31,14 @@
 
 #endif // stm32 delay us by systick
 
-#if (USE_SPI_HAL == 0)
 #define DO_H                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET)
 #define DO_L                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET)
 #define CLK_H               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET)
 #define CLK_L               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET)
 #define DI_READ             (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) ? 1 : 0)
-#else
 
-#define PS2_TRANS_DATA(tx_data, rx_data, len) \
-                            HAL_SPI_TransmitReceive(&hspi1, (tx_data), (rx_data), (len), HAL_MAX_DELAY)
-#endif
-
-#define CS_H                HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_SET) //CS拉高
-#define CS_L                HAL_GPIO_WritePin(SPI1_CS_GPIO_Port, SPI1_CS_Pin, GPIO_PIN_RESET) //CS拉低
+#define CS_H                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET) //CS拉高
+#define CS_L                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET) //CS拉低
 
 
 uint8_t Cmd[12] = {0x01, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //开始命令。请求数据
@@ -57,16 +50,13 @@ uint8_t Cmd[12] = {0x01, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //开�
  * **************************************************************************/
 void PS2_Init(void)
 {
-#if USE_SPI_HAL
-    MX_SPI1_Init();
-#else
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5 | GPIO_PIN_7, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_7, GPIO_PIN_SET);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_7;
+    GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_5|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -76,23 +66,19 @@ void PS2_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-#endif
 }
 
 void PS2_trans_data(uint8_t *tx_data, uint8_t *rx_data, uint16_t len)
 {
     CS_L;
-    DELAY_US(4);
+    DELAY_US(10);
     for(int i = 0; i < len; i++)
     {
-#if USE_SPI_HAL
-        PS2_TRANS_DATA(&(tx_data[i]), &(rx_data[i]), 1);
-#else
         rx_data[i] = 0;
         for(int j = 0; j < 8; j++)
         {
             CLK_H;
-            DELAY_US(4);
+            DELAY_US(5);
             if(tx_data[i] & (1 << j))
             {
                 DO_H;
@@ -102,17 +88,16 @@ void PS2_trans_data(uint8_t *tx_data, uint8_t *rx_data, uint16_t len)
                 DO_L;
             }
             CLK_L;
-            DELAY_US(4);
+            DELAY_US(5);
             if(DI_READ)
             {
                 rx_data[i] |= (1 << j);
             }
             CLK_H;
         }
-#endif
     }
     CS_H;
-    DELAY_US(14);
+    DELAY_US(10);
 }
 
 /******************************************************
